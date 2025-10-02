@@ -9,15 +9,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
+# Önce CPU sürümü Torch’u kur → CUDA paketleri gelmez, RAM taşmaz
 RUN pip install --no-cache-dir -U pip setuptools wheel && \
+    pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch && \
     pip install --no-cache-dir -r requirements.txt
 
-# Modelleri build aşamasında indir → ilk açılış hızlı
-RUN python - <<'PY'
-from sentence_transformers import SentenceTransformer, CrossEncoder
-SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
-CrossEncoder("cross-encoder/ms-marco-MiniLM-L-12-v2")
-PY
 
 # Uygulama dosyaları
 COPY . .
