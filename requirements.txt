@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+jinja2
+python-dotenv
+pdfplumber
+numpy<2
+faiss-cpu==1.8.0.post1
+sentence-transformers==2.7.0
+rank-bm25==0.2.2

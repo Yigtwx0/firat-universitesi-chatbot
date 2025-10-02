@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  firat-chatbot:
+    build: .
+    container_name: firat-uni-chatbot
+    ports:
+      - "8000:8000"
+    environment:
+      BOT_TITLE: "Fırat Üniversitesi Chatbot"
+      DOCS_DIR: /app/docs
+      INDEX_PATH: /app/faiss.index
+      META_PATH: /app/meta.pkl
+      RERANK_ON: "1"   # ağır gelirse "0" yapabilirsin
+    volumes:
+      - ./docs:/app/docs         # PDF'leri host'tan paylaş
+      - ./templates:/app/templates
+    # restart: unless-stopped    # sunucu ortamında istersen aç

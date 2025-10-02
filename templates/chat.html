@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Fırat Ü. 1. Sınıf Asistanı</title>
+  <style>
+    :root{
+      --bg:#0f172a;         /* koyu lacivert */
+      --panel:#111827;      /* koyu panel */
+      --card:#1f2937;       /* mesaj kartları */
+      --me:#0ea5e9;         /* kendi mesajım (mavi) */
+      --bot:#22c55e;        /* bot vurgu (yeşil) */
+      --text:#e5e7eb;       /* ana yazı */
+      --muted:#9ca3af;      /* soluk yazı */
+      --accent:#8b5cf6;     /* mor vurgu */
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(34,197,94,.10), transparent 60%),
+        radial-gradient(1100px 500px at 120% 0%, rgba(14,165,233,.10), transparent 60%),
+        linear-gradient(180deg, #0b1024 0%, var(--bg) 60%);
+    }
+
+    /* başlık */
+    header{
+      position:sticky; top:0; z-index:10;
+      backdrop-filter:saturate(180%) blur(8px);
+      background:rgba(17,24,39,.75);
+      border-bottom:1px solid rgba(148,163,184,.15);
+      padding:14px clamp(12px,3vw,22px);
+      display:flex; align-items:center; gap:12px;
+    }
+    header .dot{width:10px;height:10px;border-radius:999px;background:linear-gradient(135deg,var(--accent),#06b6d4);box-shadow:0 0 10px #06b6d4}
+    header h1{margin:0; font-size:clamp(16px,2vw,20px); letter-spacing:.2px;}
+
+    /* ana alan */
+    .wrap{max-width:950px;margin:16px auto;padding:0 14px; display:flex; flex-direction:column; min-height:calc(100vh - 64px)}
+    .chat{
+      flex:1; overflow:auto; padding:16px; border-radius:14px;
+      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.03));
+      border:1px solid rgba(148,163,184,.12); box-shadow:var(--shadow);
+    }
+
+    /* mesajlar */
+    .msg{max-width:78%; margin:8px 0; padding:10px 12px; border-radius:12px; line-height:1.45; background:var(--card); border:1px solid rgba(148,163,184,.12)}
+    .row{display:flex; gap:10px; align-items:flex-end}
+    .row.me{justify-content:flex-end}
+    .row.me .msg{background:linear-gradient(135deg, var(--me), #60a5fa); color:#05121e; border:none}
+    .row.bot .badge{background:linear-gradient(135deg, var(--bot), #16a34a); color:#04210e; font-weight:700}
+    .badge{min-width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px}
+    .time{font-size:11px;color:var(--muted);margin:2px 6px}
+
+    /* kaynaklar */
+    details{margin:4px 0 0 38px}
+    summary{cursor:pointer; color:var(--muted)}
+    .src{font-size:13px; color:#cbd5e1; padding:6px 10px; border-left:3px solid rgba(139,92,246,.7); background:rgba(139,92,246,.06); border-radius:6px}
+
+    /* alt bar */
+    .bar{
+      position:sticky; bottom:0; margin-top:12px; background:rgba(17,24,39,.9);
+      border:1px solid rgba(148,163,184,.15); border-radius:12px; padding:10px; display:flex; gap:10px; align-items:center; box-shadow:var(--shadow)
+    }
+    .bar input[type="text"]{
+      flex:1; padding:12px 14px; border-radius:10px; border:1px solid rgba(148,163,184,.25);
+      background:#0b1220; color:var(--text); outline:none;
+    }
+    .switch{display:flex; align-items:center; gap:6px; color:var(--muted); font-size:13px; white-space:nowrap}
+    .btn{
+      padding:11px 16px; border-radius:10px; border:1px solid rgba(148,163,184,.25);
+      color:#0b1220; cursor:pointer; font-weight:600; letter-spacing:.2px;
+      background:linear-gradient(135deg, #22c55e, #14b8a6);
+      box-shadow:0 6px 18px rgba(20,184,166,.35);
+    }
+    .btn:active{transform:translateY(1px)}
+    .spinner{width:18px;height:18px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;margin-left:6px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* küçük ekran */
+    @media (max-width:640px){
+      .msg{max-width:92%}
+      .switch{display:none}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="dot"></div>
+    <h1>Fırat Ü. 1. Sınıf Asistanı</h1>
+  </header>
+
+  <div class="wrap">
+    <div id="chat" class="chat"></div>
+
+    <div class="bar">
+      <input id="q" type="text" placeholder="Sorunu yaz ve Enter'a bas..." />
+      <label class="switch"><input type="checkbox" id="detail"> Detaylı</label>
+      <button id="send" class="btn">Sor</button>
+    </div>
+  </div>
+
+  <script>
+    const elChat = document.getElementById('chat');
+    const elQ    = document.getElementById('q');
+    const elBtn  = document.getElementById('send');
+
+    const esc = s => (s||'').replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+
+    const timeNow = () => {
+      const d = new Date();
+      return d.toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'});
+    };
+
+    function addMe(text){
+      elChat.insertAdjacentHTML('beforeend', `
+        <div class="row me">
+          <div class="time">${timeNow()}</div>
+          <div class="msg">${esc(text)}</div>
+          <div class="badge">🧑</div>
+        </div>
+      `);
+      elChat.scrollTop = elChat.scrollHeight;
+    }
+
+    function addBot(answer, sources){
+      elChat.insertAdjacentHTML('beforeend', `
+        <div class="row bot">
+          <div class="badge">🤖</div>
+          <div class="msg">${esc(answer || 'Yanıt alınamadı.')}</div>
+          <div class="time">${timeNow()}</div>
+        </div>
+      `);
+      if (Array.isArray(sources) && sources.length){
+        const srcHtml = sources.map(s => `<div class="src">• ${esc(s)}</div>`).join("");
+        elChat.insertAdjacentHTML('beforeend', `
+          <details open>
+            <summary>Kaynaklar</summary>
+            ${srcHtml}
+          </details>
+        `);
+      }
+      elChat.scrollTop = elChat.scrollHeight;
+    }
+
+    function addError(err){
+      elChat.insertAdjacentHTML('beforeend', `
+        <div class="row bot">
+          <div class="badge">⚠️</div>
+          <div class="msg">Bir hata oluştu: ${esc(String(err))}</div>
+          <div class="time">${timeNow()}</div>
+        </div>
+      `);
+      elChat.scrollTop = elChat.scrollHeight;
+    }
+
+    async function ask(){
+      const text = elQ.value.trim();
+      if(!text) return;
+      addMe(text);
+      elQ.value = ''; elQ.focus();
+
+      // küçük spinner
+      const spin = document.createElement('div');
+      spin.className = 'spinner';
+      elBtn.disabled = true;
+      elBtn.appendChild(spin);
+
+      const mode = document.getElementById('detail').checked ? 'detay' : 'kisa';
+
+      try{
+        const res = await fetch('/ask', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ question: text, mode })
+        });
+
+        if(!res.ok){
+          const t = await res.text();
+          addError(`HTTP ${res.status} – ${t}`);
+        }else{
+          const data = await res.json();
+          addBot(data.answer, data.sources);
+        }
+      }catch(err){
+        addError(err);
+      }finally{
+        elBtn.disabled = false;
+        spin.remove();
+      }
+    }
+
+    elBtn.addEventListener('click', ask);
+    elQ.addEventListener('keydown', e => { if(e.key === 'Enter') ask(); });
+
+    // ilk odak
+    elQ.focus();
+  </script>
+</body>
+</html>
